@@ -50,7 +50,8 @@ export async function getSubmissionsForBracket(bracketId: string): Promise<Submi
     .from("submissions")
     .select("id, bracket_id, nickname, picks, submitted_at")
     .eq("bracket_id", bracketId)
-    .order("submitted_at", { ascending: true });
+    .order("submitted_at", { ascending: true })
+    .limit(1000);
   if (error) return [];
   return (data ?? []).map((row) => ({
     id: row.id,

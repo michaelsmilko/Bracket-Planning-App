@@ -25,14 +25,16 @@ export default function ResultsPage() {
   useEffect(() => {
     Promise.all([
       fetch(`/api/brackets/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error("Not found")))),
-      fetch(`/api/brackets/${id}/submissions?t=${Date.now()}&r=${Math.random()}`, {
+      fetch(`/api/brackets/${id}/submissions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
         cache: "no-store",
-        headers: { Pragma: "no-cache" },
       }).then((r) => (r.ok ? r.json() : [])),
     ])
       .then(([b, s]) => {
         setBracket(b);
-        setSubmissions(s);
+        setSubmissions(Array.isArray(s) ? s : []);
       })
       .catch(() => setError("Could not load results"))
       .finally(() => setLoading(false));
