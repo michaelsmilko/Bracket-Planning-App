@@ -103,22 +103,33 @@ export default function VotePage() {
     savePicks(next);
   };
 
+  const [submitCount, setSubmitCount] = useState<number | null>(null);
+
   const handleSubmit = async () => {
     if (!bracket || !complete || submitting) return;
     setSubmitting(true);
+    setError("");
     try {
       const res = await fetch(`/api/brackets/${id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ picks }),
       });
-      if (!res.ok) throw new Error("Submit failed");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(typeof data.error === "string" ? data.error : "Submit failed");
+      }
       if (typeof window !== "undefined") {
         localStorage.removeItem(`${STORAGE_KEY}-${id}`);
       }
+      const countRes = await fetch(`/api/brackets/${id}/submissions`);
+      if (countRes.ok) {
+        const list = await countRes.json();
+        setSubmitCount(Array.isArray(list) ? list.length : null);
+      }
       setSubmitted(true);
-    } catch {
-      setError("Failed to submit. Try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit. Try again.");
     } finally {
       setSubmitting(false);
     }
@@ -151,10 +162,12 @@ export default function VotePage() {
       <main className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
         <h2 className="text-xl font-bold mb-2">You're done!</h2>
         <p className="text-slate-400 mb-6">
-          The organizer will share the results in the chat.
+          {submitCount != null
+            ? `Your bracket was saved. You're response #${submitCount}.`
+            : "The organizer will share the results in the chat."}
         </p>
         <Link href={`/r/${id}/results`} className="text-[var(--accent)]">
-          See results when they're in
+          See results
         </Link>
       </main>
     );
