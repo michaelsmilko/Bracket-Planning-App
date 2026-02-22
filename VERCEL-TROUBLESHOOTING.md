@@ -41,3 +41,18 @@ The app saves brackets and votes into two tables. Create them once:
 Open your Vercel link again, go to Create a bracket, add a title and options, and click create. It should work.
 
 If it still fails, the app will now show a more specific message (e.g. to check env vars or to run the schema). Redeploy your app on Vercel once so you have the latest code with those messages.
+
+---
+
+## Results show only my picks (scoreboard looks like one person)
+
+The scoreboard is supposed to show **everyone’s** submissions. If you only see your own:
+
+1. **Same link for everyone**  
+   Everyone must use the **exact same** results URL (e.g. `https://your-app.vercel.app/r/abc123/results`). If you’re testing on **localhost** and your friends used your **Vercel** link (or the other way around), submissions go to different databases, so you’ll only see the ones from the place you’re viewing.
+
+2. **Hard refresh**  
+   Do a hard refresh: **Cmd+Shift+R** (Mac) or **Ctrl+Shift+R** (Windows). If the page was cached from when only one person had submitted, this forces it to load the latest list.
+
+3. **Check how many are in the database**  
+   In Supabase: **Table Editor** → **submissions** → filter by your bracket’s `bracket_id` (the ID from the URL, e.g. `abc123`). If you see 4 rows, the app has all of them and a refresh should show them; if you see 1 row, only one submission was saved (everyone must submit using the same app URL so they hit the same Supabase project).

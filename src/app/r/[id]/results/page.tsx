@@ -25,9 +25,10 @@ export default function ResultsPage() {
   useEffect(() => {
     Promise.all([
       fetch(`/api/brackets/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error("Not found")))),
-      fetch(`/api/brackets/${id}/submissions?t=${Date.now()}`, { cache: "no-store" }).then((r) =>
-        r.ok ? r.json() : []
-      ),
+      fetch(`/api/brackets/${id}/submissions?t=${Date.now()}&r=${Math.random()}`, {
+        cache: "no-store",
+        headers: { Pragma: "no-cache" },
+      }).then((r) => (r.ok ? r.json() : [])),
     ])
       .then(([b, s]) => {
         setBracket(b);
@@ -82,12 +83,17 @@ export default function ResultsPage() {
       </Link>
       <h1 className="text-xl font-bold mb-1">{bracket.title}</h1>
       <p className="text-slate-400 text-sm mb-6">
-        {submissions.length} {submissions.length === 1 ? "response" : "responses"}
+        Scoreboard · {submissions.length} {submissions.length === 1 ? "response" : "responses"} total
       </p>
+      {submissions.length === 1 && (
+        <p className="text-amber-600/90 text-xs mb-4 rounded-lg bg-amber-500/10 p-3">
+          Only one response loaded. If others have submitted, try a hard refresh (Cmd+Shift+R or Ctrl+Shift+R) or open the results link in a private window.
+        </p>
+      )}
 
-      <h2 className="text-sm font-semibold text-slate-300 mb-2">By bracket points</h2>
+      <h2 className="text-sm font-semibold text-slate-300 mb-2">Points (cumulative)</h2>
       <p className="text-slate-500 text-xs mb-3">
-        Points = how far each option got in everyone&apos;s bracket (champion = most, first-round exit = 0).
+        Total points from everyone&apos;s brackets. Higher = option went further across all picks.
       </p>
       <div className="space-y-2 mb-8">
         {rankedByPoints.map((r, i) => (
@@ -103,7 +109,7 @@ export default function ResultsPage() {
         ))}
       </div>
 
-      <h2 className="text-sm font-semibold text-slate-300 mb-2">By champion picks</h2>
+      <h2 className="text-sm font-semibold text-slate-300 mb-2">Champion picks (cumulative)</h2>
       <p className="text-slate-500 text-xs mb-3">
         How many people had this option as their winner.
       </p>

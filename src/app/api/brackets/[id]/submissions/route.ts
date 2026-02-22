@@ -15,5 +15,6 @@ export async function GET(
   const submissions = await getSubmissionsForBracket(id);
   const res = NextResponse.json(submissions);
   res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.headers.set("X-Submissions-Count", String(submissions.length));
   return res;
 }
