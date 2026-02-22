@@ -25,5 +25,8 @@ create index if not exists submissions_bracket_id_idx on public.submissions(brac
 alter table public.brackets enable row level security;
 alter table public.submissions enable row level security;
 
+drop policy if exists "Allow all on brackets" on public.brackets;
 create policy "Allow all on brackets" on public.brackets for all using (true) with check (true);
+
+drop policy if exists "Allow all on submissions" on public.submissions;
 create policy "Allow all on submissions" on public.submissions for all using (true) with check (true);

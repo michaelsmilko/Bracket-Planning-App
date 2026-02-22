@@ -33,9 +33,22 @@ export async function POST(request: NextRequest) {
     // #endregion
     return NextResponse.json({ id: bracket.id });
   } catch (e) {
-    console.error(e);
+    const message = e instanceof Error ? e.message : "Unknown error";
+    console.error("Create bracket failed:", message);
+    if (message.includes("SUPABASE") || message.includes("Missing")) {
+      return NextResponse.json(
+        { error: "Server config error. Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel → Settings → Environment Variables, then redeploy." },
+        { status: 503 }
+      );
+    }
+    if (message.includes("relation") && message.includes("does not exist")) {
+      return NextResponse.json(
+        { error: "Database tables missing. Run the SQL in supabase/schema.sql in Supabase → SQL Editor, then try again." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
-      { error: "Failed to create bracket." },
+      { error: `Failed to create bracket: ${message}` },
       { status: 500 }
     );
   }
