@@ -183,10 +183,16 @@ export default function VotePage() {
         <button
           type="button"
           onClick={() => setShowIntro(false)}
-          className="primary"
+          className="primary mb-4"
         >
           Start
         </button>
+        <Link
+          href={`/r/${id}/results`}
+          className="text-center text-slate-400 hover:text-[var(--accent)] text-sm"
+        >
+          Just here to see results? View results →
+        </Link>
       </main>
     );
   }
