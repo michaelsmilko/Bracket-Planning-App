@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBracket, getSubmissionsForBracket } from "@/lib/store";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -11,5 +13,7 @@ export async function GET(
     return NextResponse.json({ error: "Bracket not found." }, { status: 404 });
   }
   const submissions = await getSubmissionsForBracket(id);
-  return NextResponse.json(submissions);
+  const res = NextResponse.json(submissions);
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  return res;
 }

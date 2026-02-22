@@ -25,7 +25,9 @@ export default function ResultsPage() {
   useEffect(() => {
     Promise.all([
       fetch(`/api/brackets/${id}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error("Not found")))),
-      fetch(`/api/brackets/${id}/submissions`).then((r) => (r.ok ? r.json() : [])),
+      fetch(`/api/brackets/${id}/submissions?t=${Date.now()}`, { cache: "no-store" }).then((r) =>
+        r.ok ? r.json() : []
+      ),
     ])
       .then(([b, s]) => {
         setBracket(b);
