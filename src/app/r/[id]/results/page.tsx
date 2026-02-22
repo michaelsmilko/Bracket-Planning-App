@@ -105,7 +105,7 @@ export default function ResultsPage() {
       <p className="text-slate-500 text-xs mb-3">
         How many people had this option as their winner.
       </p>
-      <div className="space-y-2">
+      <div className="space-y-2 mb-8">
         {rankedByChampion.map((r, i) => (
           <div
             key={`champ-${r.option.id}`}
