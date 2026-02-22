@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Big tap targets, minimal chrome */
+.primary,
+button.primary {
+  @apply inline-block w-full max-w-xs text-center py-4 px-6 rounded-2xl font-semibold text-lg transition active:scale-[0.98];
+  background: var(--accent);
+  color: var(--bg);
+}
+.primary:hover,
+button.primary:hover {
+  background: var(--accent-hover);
+}
+button.secondary {
+  @apply w-full py-4 px-6 rounded-2xl font-medium text-lg border-2 transition active:scale-[0.98];
+  border-color: var(--surface);
+  color: var(--text);
+}
+button.secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.input {
+  @apply w-full py-3 px-4 rounded-xl bg-[var(--surface)] border border-slate-600 text-[var(--text)] placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)];
+}
