@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { BracketData } from "@/lib/bracket";
-import { getChampionOptionIndex } from "@/lib/bracket";
+import { getChampionOptionIndex, getOptionRoundEliminated } from "@/lib/bracket";
 
 type Submission = {
   id: string;
@@ -52,15 +52,26 @@ export default function ResultsPage() {
   }
 
   const championCounts: Record<number, number> = {};
-  bracket.options.forEach((_, i) => (championCounts[i] = 0));
+  const pointsTotal: Record<number, number> = {};
+  bracket.options.forEach((_, i) => {
+    championCounts[i] = 0;
+    pointsTotal[i] = 0;
+  });
   submissions.forEach((sub) => {
     const champ = getChampionOptionIndex(bracket, sub.picks);
     if (champ != null) championCounts[champ] = (championCounts[champ] ?? 0) + 1;
+    bracket.options.forEach((_, i) => {
+      pointsTotal[i] = (pointsTotal[i] ?? 0) + getOptionRoundEliminated(bracket, sub.picks, i);
+    });
   });
 
-  const ranked = bracket.options
+  const rankedByChampion = bracket.options
     .map((opt, i) => ({ option: opt, index: i, count: championCounts[i] ?? 0 }))
     .sort((a, b) => b.count - a.count);
+
+  const rankedByPoints = bracket.options
+    .map((opt, i) => ({ option: opt, index: i, points: pointsTotal[i] ?? 0 }))
+    .sort((a, b) => b.points - a.points);
 
   return (
     <main className="min-h-screen p-6 max-w-md mx-auto">
@@ -68,13 +79,36 @@ export default function ResultsPage() {
         ← Back to bracket
       </Link>
       <h1 className="text-xl font-bold mb-1">{bracket.title}</h1>
-      <p className="text-slate-400 text-sm mb-8">
+      <p className="text-slate-400 text-sm mb-6">
         {submissions.length} {submissions.length === 1 ? "response" : "responses"}
       </p>
-      <div className="space-y-3">
-        {ranked.map((r, i) => (
+
+      <h2 className="text-sm font-semibold text-slate-300 mb-2">By bracket points</h2>
+      <p className="text-slate-500 text-xs mb-3">
+        Points = how far each option got in everyone&apos;s bracket (champion = most, first-round exit = 0).
+      </p>
+      <div className="space-y-2 mb-8">
+        {rankedByPoints.map((r, i) => (
           <div
-            key={r.option.id}
+            key={`points-${r.option.id}`}
+            className="flex items-center justify-between py-3 px-4 rounded-xl bg-[var(--surface)]"
+          >
+            <span className="font-medium">
+              #{i + 1} {r.option.label}
+            </span>
+            <span className="text-slate-400 text-sm">{r.points} pts</span>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="text-sm font-semibold text-slate-300 mb-2">By champion picks</h2>
+      <p className="text-slate-500 text-xs mb-3">
+        How many people had this option as their winner.
+      </p>
+      <div className="space-y-2">
+        {rankedByChampion.map((r, i) => (
+          <div
+            key={`champ-${r.option.id}`}
             className="flex items-center justify-between py-3 px-4 rounded-xl bg-[var(--surface)]"
           >
             <span className="font-medium">
@@ -86,6 +120,7 @@ export default function ResultsPage() {
           </div>
         ))}
       </div>
+
       <p className="text-slate-400 text-sm mt-8 text-center">
         Share the bracket link so more people can vote.
       </p>

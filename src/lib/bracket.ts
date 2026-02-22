@@ -186,3 +186,54 @@ export function isPicksComplete(bracket: BracketData, picks: (number | null)[]):
   return true;
 }
 
+/** Get the option index (0..options.length-1) that won this matchup. */
+export function getWinnerOptionIndex(
+  bracket: BracketData,
+  picks: (number | null)[],
+  matchupIndex: number
+): number | null {
+  const matchup = bracket.matchups[matchupIndex];
+  if (!matchup) return null;
+  const winner = picks[matchupIndex];
+  if (winner == null) return null;
+  if (matchup.round === 0) {
+    if (winner >= bracket.options.length) {
+      return matchup.left < bracket.options.length ? matchup.left : matchup.right;
+    }
+    return winner;
+  }
+  return getWinnerOptionIndex(bracket, picks, winner);
+}
+
+/**
+ * Get the round (0-based) where this option was eliminated.
+ * Champion = last round number (so they get max points). First-round exit = 0.
+ */
+export function getOptionRoundEliminated(
+  bracket: BracketData,
+  picks: (number | null)[],
+  optionIndex: number
+): number {
+  const numRounds =
+    bracket.matchups.length === 0 ? 0 : Math.max(...bracket.matchups.map((m) => m.round)) + 1;
+  for (const matchup of bracket.matchups) {
+    let leftOpt: number | null;
+    let rightOpt: number | null;
+    if (matchup.round === 0) {
+      leftOpt = matchup.left < bracket.options.length ? matchup.left : null;
+      rightOpt = matchup.right < bracket.options.length ? matchup.right : null;
+    } else {
+      leftOpt = getWinnerOptionIndex(bracket, picks, matchup.left);
+      rightOpt = getWinnerOptionIndex(bracket, picks, matchup.right);
+    }
+    if (leftOpt !== optionIndex && rightOpt !== optionIndex) continue;
+    const winnerOpt = getWinnerOptionIndex(bracket, picks, matchup.index);
+    if (winnerOpt === optionIndex) {
+      if (matchup.round === numRounds - 1) return numRounds;
+      continue;
+    }
+    return matchup.round;
+  }
+  return numRounds;
+}
+
