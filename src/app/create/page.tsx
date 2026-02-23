@@ -5,8 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PRESETS } from "@/lib/presets";
 
+type PollType = "bracket" | "ranked_list";
+
 export default function CreatePage() {
   const router = useRouter();
+  const [step, setStep] = useState<"choose" | "form">("choose");
+  const [pollType, setPollType] = useState<PollType | null>(null);
   const [title, setTitle] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [loading, setLoading] = useState(false);
@@ -37,6 +41,7 @@ export default function CreatePage() {
         body: JSON.stringify({
           title: title.trim(),
           options: trimmed.map((label) => ({ label })),
+          type: pollType ?? "bracket",
         }),
       });
       if (!res.ok) {
@@ -70,13 +75,58 @@ export default function CreatePage() {
     setOptions(preset.options.map((o) => o.label));
   };
 
+  if (step === "choose") {
+    return (
+      <main className="min-h-screen p-6 max-w-md mx-auto">
+        <Link href="/" className="text-slate-400 text-sm mb-6 inline-block">
+          ← Back
+        </Link>
+        <h1 className="text-xl font-bold mb-2">Create a poll</h1>
+        <p className="text-slate-400 text-sm mb-8">Choose how people will vote.</p>
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setPollType("bracket");
+              setStep("form");
+            }}
+            className="secondary text-left p-4 rounded-xl"
+          >
+            <span className="font-medium block">Bracket</span>
+            <span className="text-slate-400 text-sm">Head-to-head matchups. Pick the winner of each pair until one champion.</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPollType("ranked_list");
+              setStep("form");
+            }}
+            className="secondary text-left p-4 rounded-xl"
+          >
+            <span className="font-medium block">Ranked list</span>
+            <span className="text-slate-400 text-sm">Put options in order. 1st gets most points, last gets 1.</span>
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen p-6 max-w-md mx-auto">
-      <Link href="/" className="text-slate-400 text-sm mb-6 inline-block">
+      <button
+        type="button"
+        onClick={() => setStep("choose")}
+        className="text-slate-400 text-sm mb-2 inline-block"
+      >
         ← Back
-      </Link>
-      <h1 className="text-xl font-bold mb-6">Create a bracket</h1>
-      {PRESETS.length > 0 && (
+      </button>
+      <p className="text-slate-400 text-xs mb-6">
+        Type: {pollType === "ranked_list" ? "Ranked list" : "Bracket"}
+      </p>
+      <h1 className="text-xl font-bold mb-6">
+        {pollType === "ranked_list" ? "Create a ranked list" : "Create a bracket"}
+      </h1>
+      {PRESETS.length > 0 && pollType === "bracket" && (
         <div className="mb-8">
           <p className="text-sm text-slate-400 mb-2">Start from a preset</p>
           <div className="flex flex-wrap gap-2">

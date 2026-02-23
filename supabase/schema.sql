@@ -1,13 +1,17 @@
 -- Run this in the Supabase SQL Editor (Dashboard → SQL Editor) after creating a project.
 
--- Brackets: one row per bracket
+-- Brackets: one row per bracket (type: 'bracket' = head-to-head, 'ranked_list' = order the list)
 create table if not exists public.brackets (
   id text primary key,
   title text not null,
   options jsonb not null default '[]',
   matchups jsonb not null default '[]',
+  type text not null default 'bracket' check (type in ('bracket', 'ranked_list')),
   created_at timestamptz not null default now()
 );
+
+-- If you already have the brackets table without type, run this in SQL Editor first:
+-- alter table public.brackets add column if not exists type text not null default 'bracket' check (type in ('bracket', 'ranked_list'));
 
 -- Submissions: one row per completed bracket submission
 create table if not exists public.submissions (

@@ -8,6 +8,7 @@ import {
   getMatchupOptionsFromPicks,
   getValidPickValues,
   isPicksComplete,
+  isRankedListPicksComplete,
 } from "@/lib/bracket";
 
 const STORAGE_KEY = "bracket-picks";
@@ -61,16 +62,30 @@ export default function VotePage() {
       })
       .then((data) => {
         setBracket(data);
-        const len = data.matchups.length;
+        const isRankedList = data.type === "ranked_list";
+        const len = isRankedList ? data.options.length : data.matchups.length;
         const stored = typeof window !== "undefined" ? localStorage.getItem(`${STORAGE_KEY}-${id}`) : null;
-        let initial: (number | null)[] = Array(len).fill(null);
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored) as number[];
-            if (Array.isArray(parsed) && parsed.length === len) {
-              initial = parsed;
-            }
-          } catch (_) {}
+        let initial: (number | null)[];
+        if (isRankedList) {
+          initial = data.options.map((_: unknown, i: number) => i);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored) as number[];
+              if (Array.isArray(parsed) && parsed.length === len && isRankedListPicksComplete(len, parsed)) {
+                initial = parsed;
+              }
+            } catch (_) {}
+          }
+        } else {
+          initial = Array(len).fill(null);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored) as number[];
+              if (Array.isArray(parsed) && parsed.length === len) {
+                initial = parsed;
+              }
+            } catch (_) {}
+          }
         }
         setPicks(initial);
         setShowIntro(stored ? false : true);
@@ -89,12 +104,17 @@ export default function VotePage() {
     [id]
   );
 
+  const isRankedList = bracket?.type === "ranked_list";
   const currentMatchupIndex = picks.findIndex((p) => p == null);
   const currentMatchup =
-    bracket && currentMatchupIndex >= 0 && currentMatchupIndex < bracket.matchups.length
+    bracket && !isRankedList && currentMatchupIndex >= 0 && currentMatchupIndex < bracket.matchups.length
       ? bracket.matchups[currentMatchupIndex]
       : null;
-  const complete = bracket ? isPicksComplete(bracket, picks) : false;
+  const complete = bracket
+    ? isRankedList
+      ? isRankedListPicksComplete(bracket.options.length, picks)
+      : isPicksComplete(bracket, picks)
+    : false;
 
   const handlePick = (value: number) => {
     if (!bracket || !currentMatchup) return;
@@ -157,13 +177,22 @@ export default function VotePage() {
   const totalMatchups = bracket.matchups.length;
   const completedCount = picks.filter((p) => p != null).length;
 
+  const moveRankedItem = (fromIndex: number, direction: "up" | "down") => {
+    if (!bracket || bracket.type !== "ranked_list") return;
+    const next = [...picks] as number[];
+    const toIndex = direction === "up" ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex < 0 || toIndex >= next.length) return;
+    [next[fromIndex], next[toIndex]] = [next[toIndex], next[fromIndex]];
+    savePicks(next);
+  };
+
   if (submitted) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
         <h2 className="text-xl font-bold mb-2">You're done!</h2>
         <p className="text-slate-400 mb-6">
           {submitCount != null
-            ? `Your bracket was saved. You're response #${submitCount}.`
+            ? `Your ${isRankedList ? "ranking" : "bracket"} was saved. You're response #${submitCount}.`
             : "The organizer will share the results in the chat."}
         </p>
         <Link href={`/r/${id}/results`} className="text-[var(--accent)]">
@@ -178,7 +207,9 @@ export default function VotePage() {
       <main className="min-h-screen flex flex-col justify-center p-6 max-w-md mx-auto">
         <h1 className="text-xl font-bold mb-2">{bracket.title}</h1>
         <p className="text-slate-400 mb-8">
-          You'll see two options at a time. Tap the one you prefer. Keep going until you've picked one winner. Takes a minute.
+          {isRankedList
+            ? "Put the options in order from best to worst. Use the arrows to move items. 1st gets the most points."
+            : "You'll see two options at a time. Tap the one you prefer. Keep going until you've picked one winner. Takes a minute."}
         </p>
         <button
           type="button"
@@ -203,7 +234,7 @@ export default function VotePage() {
       <main className="min-h-screen flex flex-col p-6 max-w-md mx-auto">
         <h1 className="text-xl font-bold mb-2">Share this link</h1>
         <p className="text-slate-400 text-sm mb-4">
-          Anyone with the link can fill out their bracket. No sign-in.
+          Anyone with the link can {isRankedList ? "rank the list" : "fill out their bracket"}. No sign-in.
         </p>
         <div className="flex gap-2 mb-4">
           <input
@@ -223,7 +254,7 @@ export default function VotePage() {
           </button>
         </div>
         <Link href={`/r/${id}`} className="secondary text-center block mb-6">
-          Fill out my bracket
+          {isRankedList ? "Fill out my ranking" : "Fill out my bracket"}
         </Link>
         <Link href={`/r/${id}/results`} className="text-slate-400 text-sm">
           View results →
@@ -237,7 +268,9 @@ export default function VotePage() {
       <main className="min-h-screen flex flex-col justify-center p-6 max-w-md mx-auto">
         <h1 className="text-xl font-bold mb-2">All set</h1>
         <p className="text-slate-400 mb-8">
-          You've picked a winner for every matchup. Submit to add your bracket to the results.
+          {isRankedList
+            ? "Submit your ranking to add it to the results."
+            : "You've picked a winner for every matchup. Submit to add your bracket to the results."}
         </p>
         <button
           type="button"
@@ -246,6 +279,57 @@ export default function VotePage() {
           disabled={submitting}
         >
           {submitting ? "Submitting…" : "Submit"}
+        </button>
+        {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
+      </main>
+    );
+  }
+
+  if (isRankedList) {
+    const order = picks as number[];
+    return (
+      <main className="min-h-screen flex flex-col p-6 max-w-md mx-auto">
+        <p className="text-slate-400 text-sm mb-4">Drag order: 1st = most points, last = 1 point</p>
+        <h2 className="text-lg font-semibold mb-4">Your order</h2>
+        <div className="space-y-2">
+          {order.map((optionIndex, position) => (
+            <div
+              key={bracket.options[optionIndex].id}
+              className="flex items-center gap-2 py-3 px-4 rounded-xl bg-[var(--surface)]"
+            >
+              <span className="text-slate-400 w-6 text-sm">{position + 1}</span>
+              <span className="flex-1 font-medium">{bracket.options[optionIndex].label}</span>
+              <div className="flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => moveRankedItem(position, "up")}
+                  disabled={position === 0}
+                  className="p-1 text-slate-400 hover:text-[var(--accent)] disabled:opacity-30"
+                  aria-label="Move up"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveRankedItem(position, "down")}
+                  disabled={position === order.length - 1}
+                  className="p-1 text-slate-400 hover:text-[var(--accent)] disabled:opacity-30"
+                  aria-label="Move down"
+                >
+                  ▼
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-slate-400 text-xs mt-4">Reorder with the arrows.</p>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className="primary w-full mt-6"
+          disabled={submitting}
+        >
+          {submitting ? "Submitting…" : "Submit ranking"}
         </button>
         {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
       </main>

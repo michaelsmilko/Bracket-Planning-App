@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { BracketData } from "@/lib/bracket";
-import { getChampionOptionIndex, getOptionRoundEliminated } from "@/lib/bracket";
+import {
+  getChampionOptionIndex,
+  getOptionRoundEliminated,
+  getRankedListPointsForOption,
+} from "@/lib/bracket";
 
 type Submission = {
   id: string;
@@ -56,32 +60,47 @@ export default function ResultsPage() {
     );
   }
 
+  const isRankedList = bracket.type === "ranked_list";
+  const n = bracket.options.length;
   const championCounts: Record<number, number> = {};
   const pointsTotal: Record<number, number> = {};
+  const rankCounts: Record<number, Record<number, number>> = {};
   bracket.options.forEach((_, i) => {
     championCounts[i] = 0;
     pointsTotal[i] = 0;
+    rankCounts[i] = {};
+    for (let r = 0; r < n; r++) rankCounts[i][r] = 0;
   });
   submissions.forEach((sub) => {
-    const champ = getChampionOptionIndex(bracket, sub.picks);
-    if (champ != null) championCounts[champ] = (championCounts[champ] ?? 0) + 1;
-    bracket.options.forEach((_, i) => {
-      pointsTotal[i] = (pointsTotal[i] ?? 0) + getOptionRoundEliminated(bracket, sub.picks, i);
-    });
+    if (isRankedList) {
+      bracket.options.forEach((_, optIdx) => {
+        pointsTotal[optIdx] = (pointsTotal[optIdx] ?? 0) + getRankedListPointsForOption(n, sub.picks, optIdx);
+        const rank = sub.picks.indexOf(optIdx);
+        if (rank >= 0) rankCounts[optIdx][rank] = (rankCounts[optIdx][rank] ?? 0) + 1;
+      });
+    } else {
+      const champ = getChampionOptionIndex(bracket, sub.picks);
+      if (champ != null) championCounts[champ] = (championCounts[champ] ?? 0) + 1;
+      bracket.options.forEach((_, i) => {
+        pointsTotal[i] = (pointsTotal[i] ?? 0) + getOptionRoundEliminated(bracket, sub.picks, i);
+      });
+    }
   });
-
-  const rankedByChampion = bracket.options
-    .map((opt, i) => ({ option: opt, index: i, count: championCounts[i] ?? 0 }))
-    .sort((a, b) => b.count - a.count);
-
   const rankedByPoints = bracket.options
     .map((opt, i) => ({ option: opt, index: i, points: pointsTotal[i] ?? 0 }))
     .sort((a, b) => b.points - a.points);
+  const rankedByChampion = bracket.options
+    .map((opt, i) => ({
+      option: opt,
+      index: i,
+      count: isRankedList ? (rankCounts[i]?.[0] ?? 0) : (championCounts[i] ?? 0),
+    }))
+    .sort((a, b) => b.count - a.count);
 
   return (
     <main className="min-h-screen p-6 max-w-md mx-auto">
       <Link href={`/r/${id}`} className="text-slate-400 text-sm mb-4 inline-block">
-        ← Back to bracket
+        ← Back to {isRankedList ? "ranking" : "bracket"}
       </Link>
       <h1 className="text-xl font-bold mb-1">{bracket.title}</h1>
       <p className="text-slate-400 text-sm mb-6">
@@ -95,7 +114,9 @@ export default function ResultsPage() {
 
       <h2 className="text-sm font-semibold text-slate-300 mb-2">Points (cumulative)</h2>
       <p className="text-slate-500 text-xs mb-3">
-        Total points from everyone&apos;s brackets. Higher = option went further across all picks.
+        {isRankedList
+          ? "1st place = " + n + " pts, 2nd = " + (n - 1) + ", … last = 1. Totals below."
+          : "Total points from everyone's brackets. Higher = option went further across all picks."}
       </p>
       <div className="space-y-2 mb-8">
         {rankedByPoints.map((r, i) => (
@@ -111,9 +132,15 @@ export default function ResultsPage() {
         ))}
       </div>
 
-      <h2 className="text-sm font-semibold text-slate-300 mb-2">Champion picks (cumulative)</h2>
+      {isRankedList ? (
+        <h2 className="text-sm font-semibold text-slate-300 mb-2">How many put each option 1st</h2>
+      ) : (
+        <h2 className="text-sm font-semibold text-slate-300 mb-2">Champion picks (cumulative)</h2>
+      )}
       <p className="text-slate-500 text-xs mb-3">
-        How many people had this option as their winner.
+        {isRankedList
+          ? "Number of people who ranked this option first."
+          : "How many people had this option as their winner."}
       </p>
       <div className="space-y-2 mb-8">
         {rankedByChampion.map((r, i) => (
@@ -125,14 +152,16 @@ export default function ResultsPage() {
               #{i + 1} {r.option.label}
             </span>
             <span className="text-slate-400 text-sm">
-              {r.count} of {submissions.length} {r.count === 1 ? "pick" : "picks"}
+              {isRankedList
+                ? (rankCounts[r.index]?.[0] ?? 0) + " of " + submissions.length + " had 1st"
+                : r.count + " of " + submissions.length + " " + (r.count === 1 ? "pick" : "picks")}
             </span>
           </div>
         ))}
       </div>
 
       <p className="text-slate-400 text-sm mt-8 text-center">
-        Share the bracket link so more people can vote.
+        Share the link so more people can vote.
       </p>
     </main>
   );

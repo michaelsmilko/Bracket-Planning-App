@@ -15,11 +15,14 @@ export type Matchup = {
   right: number;
 };
 
+export type PollType = "bracket" | "ranked_list";
+
 export type BracketData = {
   id: string;
   title: string;
   options: Option[];
-  matchups: Matchup[];  // in display order (round 0 first, then 1, ...)
+  matchups: Matchup[];  // in display order (round 0 first, then 1, ...); empty for ranked_list
+  type?: PollType;      // default 'bracket'
 };
 
 const BYE = -1;
@@ -235,5 +238,29 @@ export function getOptionRoundEliminated(
     return matchup.round;
   }
   return numRounds;
+}
+
+// --- Ranked list (order the options; 1st = N pts, 2nd = N-1, ..., last = 1) ---
+
+/** Picks for ranked list: [optionIndex1st, optionIndex2nd, ...], length = options.length, each 0..n-1 once. */
+export function isRankedListPicksComplete(optionsLength: number, picks: (number | null)[]): boolean {
+  if (picks.length !== optionsLength) return false;
+  const seen = new Set<number>();
+  for (const p of picks) {
+    if (p == null || p < 0 || p >= optionsLength || seen.has(p)) return false;
+    seen.add(p);
+  }
+  return seen.size === optionsLength;
+}
+
+/** Points for one ranked-list submission: option at rank r (0-based) gets (n - r) points. */
+export function getRankedListPointsForOption(
+  optionsLength: number,
+  picks: number[],
+  optionIndex: number
+): number {
+  const rank = picks.indexOf(optionIndex);
+  if (rank < 0) return 0;
+  return optionsLength - rank;
 }
 

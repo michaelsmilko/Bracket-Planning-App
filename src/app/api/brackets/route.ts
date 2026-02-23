@@ -5,13 +5,14 @@ import { debugLog } from "@/lib/debug-log";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, options } = body;
+    const { title, options, type } = body;
     if (!title || !Array.isArray(options) || options.length < 2) {
       return NextResponse.json(
         { error: "Need a title and at least 2 options." },
         { status: 400 }
       );
     }
+    const pollType = type === "ranked_list" ? "ranked_list" : "bracket";
     const opts = options.map((o: { id?: string; label?: string }) => ({
       id: o.id ?? String(Math.random()).slice(2, 10),
       label: String(o.label ?? "").trim(),
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const bracket = await createBracket(String(title).trim(), opts);
+    const bracket = await createBracket(String(title).trim(), opts, pollType);
     // #region agent log
     debugLog({
       location: "api/brackets/route.ts POST",

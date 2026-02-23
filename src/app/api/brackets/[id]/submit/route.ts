@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBracket, addSubmission } from "@/lib/store";
-import { isPicksComplete } from "@/lib/bracket";
+import { isPicksComplete, isRankedListPicksComplete } from "@/lib/bracket";
 
 export async function POST(
   request: NextRequest,
@@ -21,7 +21,15 @@ export async function POST(
       );
     }
     const picksArr = picks as (number | null)[];
-    if (!isPicksComplete(bracket, picksArr)) {
+    const isRankedList = bracket.type === "ranked_list";
+    if (isRankedList) {
+      if (!isRankedListPicksComplete(bracket.options.length, picksArr)) {
+        return NextResponse.json(
+          { error: "Please rank every option (each choice 1st through last)." },
+          { status: 400 }
+        );
+      }
+    } else if (!isPicksComplete(bracket, picksArr)) {
       return NextResponse.json(
         { error: "Incomplete bracket." },
         { status: 400 }

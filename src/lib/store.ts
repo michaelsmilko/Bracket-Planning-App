@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import type { BracketData } from "./bracket";
+import type { BracketData, PollType } from "./bracket";
 import { buildBracket } from "./bracket";
 import { getSupabase } from "./supabase";
 
@@ -13,16 +13,21 @@ export type Submission = {
 
 export async function createBracket(
   title: string,
-  options: { id: string; label: string }[]
+  options: { id: string; label: string }[],
+  type: PollType = "bracket"
 ): Promise<BracketData> {
   const id = nanoid(8);
-  const bracket = buildBracket(id, title, options);
+  const bracket: BracketData =
+    type === "ranked_list"
+      ? { id, title, options, matchups: [], type: "ranked_list" }
+      : buildBracket(id, title, options);
   const supabase = getSupabase();
   const { error } = await supabase.from("brackets").insert({
     id: bracket.id,
     title: bracket.title,
     options: bracket.options,
     matchups: bracket.matchups,
+    type: bracket.type ?? "bracket",
   });
   if (error) throw new Error(error.message);
   return bracket;
@@ -32,15 +37,17 @@ export async function getBracket(id: string): Promise<BracketData | null> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("brackets")
-    .select("id, title, options, matchups")
+    .select("id, title, options, matchups, type")
     .eq("id", id)
     .single();
   if (error || !data) return null;
+  const type = (data.type as PollType) ?? "bracket";
   return {
     id: data.id,
     title: data.title,
     options: data.options as BracketData["options"],
-    matchups: data.matchups as BracketData["matchups"],
+    matchups: (data.matchups as BracketData["matchups"]) ?? [],
+    type,
   };
 }
 
