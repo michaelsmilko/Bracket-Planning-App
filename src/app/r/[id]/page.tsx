@@ -263,28 +263,6 @@ export default function VotePage() {
     );
   }
 
-  if (complete) {
-    return (
-      <main className="min-h-screen flex flex-col justify-center p-6 max-w-md mx-auto">
-        <h1 className="text-xl font-bold mb-2">All set</h1>
-        <p className="text-slate-400 mb-8">
-          {isRankedList
-            ? "Submit your ranking to add it to the results."
-            : "You've picked a winner for every matchup. Submit to add your bracket to the results."}
-        </p>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          className="primary"
-          disabled={submitting}
-        >
-          {submitting ? "Submitting…" : "Submit"}
-        </button>
-        {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
-      </main>
-    );
-  }
-
   if (isRankedList) {
     const order = picks as number[];
     return (
@@ -330,6 +308,26 @@ export default function VotePage() {
           disabled={submitting}
         >
           {submitting ? "Submitting…" : "Submit ranking"}
+        </button>
+        {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
+      </main>
+    );
+  }
+
+  if (complete) {
+    return (
+      <main className="min-h-screen flex flex-col justify-center p-6 max-w-md mx-auto">
+        <h1 className="text-xl font-bold mb-2">All set</h1>
+        <p className="text-slate-400 mb-8">
+          You&apos;ve picked a winner for every matchup. Submit to add your bracket to the results.
+        </p>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className="primary"
+          disabled={submitting}
+        >
+          {submitting ? "Submitting…" : "Submit"}
         </button>
         {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
       </main>
